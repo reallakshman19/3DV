@@ -101,6 +101,9 @@ function moduleScriptTags(html) {
 const index = read('index.html');
 if (!fs.existsSync(path.join(root, '.nojekyll'))) fail('Published site root must include .nojekyll for GitHub Pages static deployment');
 if (/Previous cache marker:/i.test(index)) fail('index.html must not keep stale Previous cache marker comments');
+if (!/<title>3DV<\/title>/.test(index)) fail('index.html title must match standalone runtime app name 3DV');
+if (!/<meta\s+name=["']application-name["']\s+content=["']3DV["']\s*>/i.test(index)) fail('index.html application-name meta must be 3DV');
+if (!/<meta\s+name=["']apple-mobile-web-app-title["']\s+content=["']3DV["']\s*>/i.test(index)) fail('index.html apple-mobile-web-app-title meta must be 3DV');
 
 const moduleTags = moduleScriptTags(index);
 const inlineModuleTags = moduleTags.filter((tag) => !getHtmlAttr(tag, 'src'));
