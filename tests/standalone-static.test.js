@@ -105,6 +105,12 @@ if (!/<title>3DV<\/title>/.test(index)) fail('index.html title must match standa
 if (!/<meta\s+name=["']application-name["']\s+content=["']3DV["']\s*>/i.test(index)) fail('index.html application-name meta must be 3DV');
 if (!/<meta\s+name=["']apple-mobile-web-app-title["']\s+content=["']3DV["']\s*>/i.test(index)) fail('index.html apple-mobile-web-app-title meta must be 3DV');
 
+const manifest = JSON.parse(read('site.webmanifest'));
+if (manifest.name !== '3DV') fail('site.webmanifest name must be 3DV');
+if (manifest.short_name !== '3DV') fail('site.webmanifest short_name must be 3DV');
+if (manifest.start_url !== './index.html') fail('site.webmanifest start_url must point to ./index.html');
+for (const icon of manifest.icons || []) assertLocalRefExists('site.webmanifest', icon.src, 'site.webmanifest icon');
+
 const moduleTags = moduleScriptTags(index);
 const inlineModuleTags = moduleTags.filter((tag) => !getHtmlAttr(tag, 'src'));
 if (inlineModuleTags.length) fail('index.html must not use inline module startup scripts; found ' + inlineModuleTags.length);
