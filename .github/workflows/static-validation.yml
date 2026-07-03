@@ -23,3 +23,6 @@ jobs:
 
       - name: Run static validation
         run: npm test
+
+      - name: Run RVM evidence UI validation
+        run: npm run test:evidence-ui
