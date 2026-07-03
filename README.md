@@ -27,3 +27,11 @@ npm test
 ```
 
 The guard checks that local static references exist, GitHub Pages deployment keeps `.nojekyll`, the app has only the expected standalone tabs, and `index.html` has a single external module startup owner.
+
+## Validate evidence UI summary
+
+Run the focused evidence summary test when changing the 3D Json Viewer evidence path:
+
+```powershell
+npm run test:evidence-ui
+```
