@@ -90,7 +90,7 @@ function walk(dirRel) {
 }
 
 function getHtmlAttr(tag, name) {
-  const pattern = new RegExp('\\b' + name + '\\s*=\\s*(["\\'])(.*?)\\1', 'i');
+  const pattern = new RegExp("\\b" + name + "\\s*=\\s*([\"'])(.*?)\\1", "i");
   return tag.match(pattern)?.[2] || null;
 }
 
