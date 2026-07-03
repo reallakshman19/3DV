@@ -100,6 +100,7 @@ function moduleScriptTags(html) {
 
 const index = read('index.html');
 if (!fs.existsSync(path.join(root, '.nojekyll'))) fail('Published site root must include .nojekyll for GitHub Pages static deployment');
+if (/Previous cache marker:/i.test(index)) fail('index.html must not keep stale Previous cache marker comments');
 
 const moduleTags = moduleScriptTags(index);
 const inlineModuleTags = moduleTags.filter((tag) => !getHtmlAttr(tag, 'src'));
