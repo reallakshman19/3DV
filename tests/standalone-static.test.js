@@ -89,10 +89,25 @@ function walk(dirRel) {
   return out;
 }
 
+function getHtmlAttr(tag, name) {
+  const pattern = new RegExp('\\b' + name + '\\s*=\\s*(["\\'])(.*?)\\1', 'i');
+  return tag.match(pattern)?.[2] || null;
+}
+
+function moduleScriptTags(html) {
+  return [...html.matchAll(/<script\b(?=[^>]*\btype=["']module["'])[^>]*>[\s\S]*?<\/script>/gi)].map((match) => match[0]);
+}
+
 const index = read('index.html');
 if (!fs.existsSync(path.join(root, '.nojekyll'))) fail('Published site root must include .nojekyll for GitHub Pages static deployment');
-const moduleScripts = [...index.matchAll(/<script\s+[^>]*type=["']module["'][^>]*src=["']([^"']+)["'][^>]*>/g)].map((match) => match[1]);
-if (moduleScripts.length !== 1) fail('Expected one module script, found ' + moduleScripts.length);
+
+const moduleTags = moduleScriptTags(index);
+const inlineModuleTags = moduleTags.filter((tag) => !getHtmlAttr(tag, 'src'));
+if (inlineModuleTags.length) fail('index.html must not use inline module startup scripts; found ' + inlineModuleTags.length);
+
+const moduleScripts = moduleTags.map((tag) => getHtmlAttr(tag, 'src')).filter(Boolean);
+if (moduleScripts.length !== 1) fail('Expected one external module script, found ' + moduleScripts.length);
+if (index.includes('installViewer3dJsonTab')) fail('3D Json Viewer tab must be owned by the standalone runtime registry, not an inline installer');
 assertLocalRefExists('index.html', moduleScripts[0], 'index module script');
 for (const match of index.matchAll(/<link\s+[^>]*href=["']([^"']+)["'][^>]*>/g)) {
   const href = match[1];
