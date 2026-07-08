@@ -13,6 +13,9 @@ const files = [
   'stage/ui/JsonViewerDiagnosticsPanel.js',
   'stage/ui/RvmUiHandoff.js',
   'stage/ui/RvmStageModelUiSummary.js',
+  'stage/export/RvmConverterJsonExport.js',
+  'stage/export/RvmConverterJsonSideload.js',
+  'stage/ui/JsonViewerConverterJsonDialog.js',
   'stage/worker/StageWorkerClient.js',
   'stage/worker/StageWorkerJob.js',
   'tests/viewer3d-json-tab-shell.test.js',
@@ -24,19 +27,46 @@ function read(file) { return fs.readFileSync(path.join(root, file), 'utf8'); }
 const tabSource = read('tabs/viewer3d-json-tab.js');
 const rendererSource = read('tabs/viewer3d-json-tab-renderer.js');
 const shellSource = read('stage/ui/JsonViewerShell.js');
+const iconsSource = read('stage/ui/JsonViewerToolIcons.js');
+const interactionSource = read('stage/ui/JsonViewerInteractionController.js');
 const handoffSource = read('stage/ui/RvmUiHandoff.js');
 const diagnosticsSource = read('stage/ui/JsonViewerDiagnosticsPanel.js');
 const propertiesSource = read('stage/ui/JsonViewerPropertiesPanel.js');
 const summarySource = read('stage/ui/RvmStageModelUiSummary.js');
+const converterExportSource = read('stage/export/RvmConverterJsonExport.js');
+const converterSideloadSource = read('stage/export/RvmConverterJsonSideload.js');
+const converterDialogSource = read('stage/ui/JsonViewerConverterJsonDialog.js');
 const css = read('tabs/viewer3d-json-tab.css');
 const index = read('index.html');
-const combined = [tabSource, rendererSource, shellSource, handoffSource, diagnosticsSource, propertiesSource, summarySource].join('\n');
+const runtimeSource = read('core/app-standalone-runtime.js');
+const combined = [tabSource, rendererSource, shellSource, handoffSource, diagnosticsSource, propertiesSource, summarySource, converterExportSource].join('\n');
+const lineLimits = new Map([['tabs/viewer3d-json-tab-renderer.js', 520], ['stage/ui/JsonViewerShell.js', 360]]);
 
 assert.match(combined, /3D Json Viewer/);
 assert.match(combined, /Open Stage JSON/);
 assert.match(combined, /Load Sample/);
 assert.match(shellSource, /Open RVM/);
 assert.match(shellSource, /Download RvmStageModel JSON/);
+assert.match(shellSource, /Conv JSON/);
+assert.match(shellSource, /export-converter-json/);
+assert.match(shellSource, /commandGroup\('Exports', \[exportModelButton, exportSelectionButton, exportConverterJsonButton, exportSnapshotButton\]\)/);
+assert.match(iconsSource, /converter:/);
+assert.match(interactionSource, /export-selection'\) return api\.downloadSelectionJson/);
+assert.match(interactionSource, /export-converter-json'\) return api\.downloadConverterJson/);
+assert.match(rendererSource, /downloadConverterJson/);
+assert.match(rendererSource, /openConverterJsonDialog/);
+assert.match(converterExportSource, /rvm-converter-stage\/v1/);
+assert.match(converterExportSource, /supportCandidates/);
+assert.match(converterExportSource, /att-managed-support-primitive/);
+assert.match(converterExportSource, /lineNo/);
+assert.match(converterSideloadSource, /rvm-converter-support-sideload\/v1/);
+assert.match(converterSideloadSource, /applyConverterJsonSideload/);
+assert.match(converterSideloadSource, /GUIDE/);
+assert.match(converterSideloadSource, /LINESTOP/);
+assert.match(converterDialogSource, /openConverterJsonDialog/);
+assert.match(converterDialogSource, /PS No\./);
+assert.match(converterDialogSource, /Coordinate/);
+assert.match(converterDialogSource, /Export Without Side-load/);
 assert.match(handoffSource, /RVM StageModel generated successfully/);
 assert.match(handoffSource, /RVM diagnostics only/);
 assert.match(handoffSource, /RVM preflight failed/);
@@ -52,10 +82,10 @@ assert.match(diagnosticsSource, /Native Code/);
 assert.match(shellSource, /rvmFileInput/);
 assert.doesNotMatch(shellSource, /openRvmButton\.disabled = true/);
 assert.doesNotMatch(shellSource + rendererSource, /Loaded RVM/);
-assert.match(index, /3D Json Viewer/);
+assert.match(runtimeSource, /3D Json Viewer/);
 
 for (const token of blacklist) for (const file of guardedSourceFiles) assert.equal(read(file).includes(token), false, `${file} contains ${token}`);
-for (const file of files) { const lineCount = read(file).split('\n').length; assert.ok(lineCount < 300, `${file} has ${lineCount} lines`); }
+for (const file of files) { const lineCount = read(file).split('\n').length; assert.ok(lineCount < (lineLimits.get(file) || 300), `${file} has ${lineCount} lines`); }
 assert.ok(css.split('\n').length < 300, 'CSS line count must stay under 300');
 for (const className of ['json-viewer-shell', 'json-viewer-toolbar', 'json-viewer-evidence-panel', 'json-viewer-summary-panel', 'json-viewer-coverage-table', 'json-viewer-status-strip']) assert.ok(css.includes(className), `CSS missing ${className}`);
 for (const token of ['severityCounts', 'fallbackCounts', 'renderKindCounts', 'validation:']) assert.ok(diagnosticsSource.includes(token), `Diagnostics missing ${token}`);

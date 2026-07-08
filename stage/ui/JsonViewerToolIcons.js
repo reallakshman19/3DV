@@ -9,6 +9,7 @@ const SVG = {
   open: '<path d="M4 19V5h7l2 2h7v12z"/><path d="M4 9h16"/>',
   sample: '<path d="M7 4h10v16H7z"/><path d="M10 8h4M10 12h4M10 16h3"/>',
   export: '<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/>',
+  converter: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M8 13h6"/><path d="m13 10 4 4-4 4"/><path d="M17 14H9"/>',
   undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-1"/>',
   redo: '<path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h1"/>',
   select: '<path d="m4 3 7 17 2-7 7-2z"/><path d="m13 13 6 6"/>',

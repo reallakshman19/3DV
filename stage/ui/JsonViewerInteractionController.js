@@ -30,6 +30,7 @@ export function createJsonViewerInteractionController(handles, state, api) {
     if (action === 'open-rvm') return handles.rvmFileInput.click();
     if (action === 'download-stage-model' || action === 'export-stage') return api.downloadStageModel();
     if (action === 'export-selection') return api.downloadSelectionJson();
+    if (action === 'export-converter-json') return api.downloadConverterJson();
     if (action === 'export-snapshot') return api.downloadSnapshot();
     if (action === 'undo' || action === 'redo') return api.restoreHistory(action);
     if (action === 'load-sample') return api.loadSample();
