@@ -24,6 +24,8 @@ import { createJsonViewerHistory, pushJsonViewerUndo, undoJsonViewerState, redoJ
 import { createJsonViewerEnrichmentState, renderJsonViewerEnrichmentPanel } from '../stage/ui/JsonViewerEnrichmentPanel.js';
 import { classifyRvmWorkerResult } from '../stage/ui/RvmUiHandoff.js';
 import { buildStageModelDownload, deriveRvmStageUiSummary } from '../stage/ui/RvmStageModelUiSummary.js';
+import { buildRvmConverterJsonPayload } from '../stage/export/RvmConverterJsonExport.js';
+import { openConverterJsonDialog } from '../stage/ui/JsonViewerConverterJsonDialog.js';
 
 const SAMPLE_SOURCE_NAME = 'sample-rvm-stage-model-v1.js';
 const WORKER_URL = new URL('../stage/worker/stage-worker.js', import.meta.url);
@@ -312,6 +314,19 @@ async function hashArrayBuffer(file, arrayBuffer, kind) { return hashBytes(file,
 async function hashBytes(file, bytes, kind) { const cryptoApi = globalThis.crypto?.subtle; if (!cryptoApi) return `sha256-${kind}-${file.name}-${file.size}-${bytes.byteLength}`; const digest = await cryptoApi.digest('SHA-256', bytes); return `sha256-${Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('')}`; }
 function downloadStageModel(handles, state) { if (!state.model) return; const download = buildStageModelDownload(state.model, state.sourceFileName); const url = URL.createObjectURL(new Blob([download.text], { type: 'application/json' })); const a = document.createElement('a'); a.href = url; a.download = download.fileName; a.click(); URL.revokeObjectURL(url); state.statusText = `Downloaded ${download.fileName}`; updateStatus(handles, state); }
 function downloadSelectionJson(handles, state) { const refs = state.selectedRefs?.length ? state.selectedRefs : state.selectedRef ? [state.selectedRef] : []; const rows = refs.map((ref) => ({ ref, item: itemForRef(state.model, ref) })); downloadBlob('json-viewer-selection.json', JSON.stringify({ source: state.sourceFileName, selected: rows }, null, 2), 'application/json'); state.statusText = `Exported ${rows.length} selected item(s)`; updateStatus(handles, state); }
+// Converter export seed: accepts viewer handles/state, downloads a schema-stamped JSON payload, and reports a status-only fallback when no model is loaded.
+function downloadConverterJson(handles, state) {
+  if (!state.model) { state.statusText = 'Converter JSON unavailable: load a model first'; updateStatus(handles, state); return; }
+  const refs = state.selectedRefs?.length ? state.selectedRefs : state.selectedRef ? [state.selectedRef] : [];
+  const payload = buildRvmConverterJsonPayload({ model: state.model, sourceFileName: state.sourceFileName, selectedRefs: refs });
+  openConverterJsonDialog(payload, (finalPayload, sideLoad) => {
+    downloadBlob('rvm-converter-stage.json', JSON.stringify(finalPayload, null, 2), 'application/json');
+    const candidates = finalPayload.rvmAttContext?.supportCandidates?.length || 0;
+    const matched = sideLoad?.matchedRows || 0;
+    state.statusText = `Exported converter JSON (${refs.length} selected ref${refs.length === 1 ? '' : 's'}, ${candidates} support candidate${candidates === 1 ? '' : 's'}, ${matched} side-load match${matched === 1 ? '' : 'es'})`;
+    updateStatus(handles, state);
+  });
+}
 function downloadSnapshot(handles, state) { const dataUrl = state.previewRenderer?.renderer?.domElement?.toDataURL?.('image/png'); if (!dataUrl) { state.statusText = 'Snapshot unavailable'; return updateStatus(handles, state); } const a = document.createElement('a'); a.href = dataUrl; a.download = 'json-viewer-snapshot.png'; a.click(); state.statusText = 'Exported viewport snapshot'; updateStatus(handles, state); }
 function downloadBlob(name, text, type) { const url = URL.createObjectURL(new Blob([text], { type })); const a = document.createElement('a'); a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url); }
 function itemForRef(model, ref) { if (!model || !ref) return null; if (ref.type === 'root') return { id: ref.id, schema: model.schema, source: model.source }; if (ref.type === 'node') return model.hierarchy?.nodes?.find((item) => item.id === ref.id) || null; if (ref.type === 'component') return model.components?.find((item) => item.id === ref.id) || null; if (ref.type === 'primitive') return model.primitives?.find((item) => item.id === ref.id) || null; return null; }
@@ -379,6 +394,7 @@ export function renderViewer3DJson(root) {
     loadSample: () => loadSample(handles, state),
     downloadStageModel: () => downloadStageModel(handles, state),
     downloadSelectionJson: () => downloadSelectionJson(handles, state),
+    downloadConverterJson: () => downloadConverterJson(handles, state),
     downloadSnapshot: () => downloadSnapshot(handles, state),
     recordUndo: () => pushJsonViewerUndo(state),
     restoreHistory: (direction) => restoreHistory(direction, handles, state),
