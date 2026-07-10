@@ -35,12 +35,13 @@ test('ATT-managed hierarchy JSON with APOS/LPOS/POS synthesizes schematic geomet
     { name: '/LINE/B1', type: 'BRANCH', attributes: { NAME: '/LINE/B1' }, children: [
       { name: 'PIPE AUTO', type: 'PIPE', attributes: { APOS: { x: 0, y: 0, z: 0 }, LPOS: { x: 1000, y: 0, z: 0 }, ABORE: '250mm' } },
       { name: 'VALV =1', type: 'VALV', attributes: { APOS: { x: 1000, y: 0, z: 0 }, LPOS: { x: 1000, y: 0, z: 0 }, ABORE: '250mm' } },
+      { name: 'SUPPORT PS-1', type: 'SUPPORT', attributes: { POS: { x: 500, y: 0, z: 0 }, ABORE: '250mm', SUPPORT_TAG: 'PS-1', SUPPORT_TYPE: 'GUIDE', CMPSUPTYPE: 'GUIDE', DTXR: 'Pipe Guide', NODEGAP: '2mm' } },
     ] },
   ]);
   const job = createStageJsonWorkerJob({ text, fileName: 'positioned.json', fileSize: text.length, fileHash: 'sha256-att-positioned' });
   const result = await runStageWorkerJob(createStageWorkerRuntime(), job);
   assert.equal(result.ok, true, result.error?.message || 'expected worker success');
-  assert.equal(result.stageModel.primitives.length, 2);
+  assert.equal(result.stageModel.primitives.length, 3);
   const pipePrim = result.stageModel.primitives.find((p) => p.renderKind === 'CYLINDER');
   assert.ok(pipePrim);
   assert.equal(pipePrim.nativeParams.radius, 125);
@@ -49,6 +50,11 @@ test('ATT-managed hierarchy JSON with APOS/LPOS/POS synthesizes schematic geomet
   assert.equal(pipePrim.confidence.geometry, 'derived');
   const valvPrim = result.stageModel.primitives.find((p) => p.renderKind === 'SPHERE');
   assert.ok(valvPrim, 'zero-length APOS===LPOS should synthesize a SPHERE marker instead of a degenerate cylinder');
+  const supportPrim = result.stageModel.primitives.find((p) => p.nativeParams?.role === 'supportShoe');
+  assert.ok(supportPrim);
+  assert.equal(supportPrim.attributes.SUPPORT_TYPE, 'GUIDE');
+  assert.equal(supportPrim.sourceAttributes.CMPSUPTYPE, 'GUIDE');
+  assert.equal(supportPrim.sourceAttributes.DTXR, 'Pipe Guide');
   const schematicDiagnostic = result.stageModel.diagnostics.messages.find((message) => message.code === 'STAGE_ATT_HIERARCHY_SCHEMATIC_GEOMETRY');
   assert.ok(schematicDiagnostic);
 });

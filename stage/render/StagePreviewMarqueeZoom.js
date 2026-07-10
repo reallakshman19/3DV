@@ -64,7 +64,7 @@ function applyZoom(rendererState, state, endX, endY) {
   const rectLeft = Math.min(state.startX, endX), rectTop = Math.min(state.startY, endY);
   const rect = { left: rectLeft, top: rectTop, right: rectLeft + width, bottom: rectTop + height };
   const box = collectBoxInRect(rendererState, rect);
-  if (box) fitStagePreviewCamera(rendererState, box);
+  if (box) fitStagePreviewCamera(rendererState, box, { preserveOrientation: true });
 }
 
 function collectBoxInRect(rendererState, rect) {

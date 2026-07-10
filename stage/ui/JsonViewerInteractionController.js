@@ -29,7 +29,8 @@ export function createJsonViewerInteractionController(handles, state, api) {
     if (action === 'open-stage-json') return handles.fileInput.click();
     if (action === 'open-rvm') return handles.rvmFileInput.click();
     if (action === 'download-stage-model' || action === 'export-stage') return api.downloadStageModel();
-    if (action === 'export-selection') return api.downloadSelectionJson();
+    if (action === 'export-selection' || action === 'export-selection-element') return api.downloadSelectionJson('element');
+    if (action === 'export-selection-node') return api.downloadSelectionJson('node');
     if (action === 'export-converter-json') return api.downloadConverterJson();
     if (action === 'export-snapshot') return api.downloadSnapshot();
     if (action === 'undo' || action === 'redo') return api.restoreHistory(action);
@@ -257,6 +258,18 @@ function handleEnrichmentAction(action, state, api) {
   if (action === 'enrich-run') {
     state.enrichment.lastRun = new Date().toLocaleString();
     if (api.applyEnrichment) api.applyEnrichment();
+  }
+  if (action === 'enrich-populate') {
+    // One-click populate: run headless XML->CII enrichment when a line list is
+    // loaded, otherwise open the workflow on the master import tab.
+    if (Array.isArray(state.enrichment.masters?.lineList) && state.enrichment.masters.lineList.length) {
+      state.enrichment.lastRun = new Date().toLocaleString();
+      if (api.applyEnrichment) api.applyEnrichment();
+    } else {
+      state.enrichment.open = true;
+      state.enrichment.activeTab = 'masters';
+      state.statusText = 'Populate attributes: import the master line list (and optional piping class / material / weight masters) first';
+    }
   }
   if (action === 'enrich-export-config') exportEnrichmentConfig(state);
   api.renderSidePanels();

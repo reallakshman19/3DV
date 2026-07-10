@@ -13,7 +13,12 @@ function findSelectedItem(model, selectedRef) {
   if (!model || !selectedRef) return null;
   if (selectedRef.type === 'node') return model.hierarchy?.nodes?.find((node) => node.id === selectedRef.id) || null;
   if (selectedRef.type === 'component') return model.components?.find((component) => component.id === selectedRef.id) || null;
-  if (selectedRef.type === 'primitive') return model.primitives?.find((primitive) => primitive.id === selectedRef.id) || null;
+  if (selectedRef.type === 'primitive') {
+    const primitive = model.primitives?.find((item) => item.id === selectedRef.id) || null;
+    if (!primitive || primitive.enrichedAttributes) return primitive;
+    const node = model.hierarchy?.nodes?.find((item) => item.id === primitive.nodeId);
+    return node?.enrichedAttributes ? { ...primitive, enrichedAttributes: node.enrichedAttributes } : primitive;
+  }
   return null;
 }
 
@@ -33,8 +38,10 @@ export function renderEngDataPanel(target, model, selectedRef) {
     const processRows = [
       ['Line Number', enriched.lineNo],
       ['Fluid Service', enriched.fluidService],
-      ['Design Pressure', enriched.designPressureMpa != null ? `${enriched.designPressureMpa} MPa` : null],
-      ['Design Temp', enriched.designTemperatureC != null ? `${enriched.designTemperatureC} °C` : null],
+      ['Fluid Phase', enriched.fluidPhase],
+      ['Fluid Density', enriched.fluidDensityKgM3 != null ? `${enriched.fluidDensityKgM3} kg/m³` : null],
+      ['Design Pressure', enriched.designPressureMpa != null ? `${enriched.designPressureMpa}` : null],
+      ['Design Temp (T1)', enriched.designTemperatureC != null ? `${enriched.designTemperatureC} °C` : null],
       ['Operating Temp', enriched.operatingTemperatureC != null ? `${enriched.operatingTemperatureC} °C` : null],
       ['Minimum Temp', enriched.minimumTemperatureC != null ? `${enriched.minimumTemperatureC} °C` : null],
     ].filter(r => r[1] != null && r[1] !== '');
@@ -44,9 +51,11 @@ export function renderEngDataPanel(target, model, selectedRef) {
       ['Piping Class', enriched.pipingClass],
       ['Pressure Rating', enriched.pressureRating],
       ['Nominal Bore', enriched.nominalBoreMm != null ? `${enriched.nominalBoreMm} mm` : null],
+      ['Pipe OD', enriched.pipeOdMm != null ? `${enriched.pipeOdMm} mm` : null],
       ['Schedule', enriched.schedule],
       ['Wall Thickness', enriched.wallThicknessMm != null ? `${enriched.wallThicknessMm} mm` : null],
       ['Corrosion Allowance', enriched.corrosionAllowanceMm != null ? `${enriched.corrosionAllowanceMm} mm` : null],
+      ['Insulation Thickness', enriched.insulationThicknessMm != null ? `${enriched.insulationThicknessMm} mm` : null],
     ].filter(r => r[1] != null && r[1] !== '');
     if (specRows.length > 0) target.appendChild(renderGroup('Piping Specification', specRows));
 

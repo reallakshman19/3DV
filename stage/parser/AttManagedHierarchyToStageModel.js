@@ -59,7 +59,7 @@ function flattenAttTree(items, rootId) {
       const path = parentPath ? `${parentPath}/${name}` : name;
       const attrs = plainAttributes(item);
       const primitiveIds = [];
-      const nodePrimitives = buildComponentPrimitives(item.type, item.attributes || {}, id, nextPrimId);
+      const nodePrimitives = buildComponentPrimitives(item.type, item.attributes || {}, id, nextPrimId, attrs);
       for (const primitive of nodePrimitives) { primitives.push(primitive); primitiveIds.push(primitive.id); }
       nodes.push({ id, parentId, name, path, kind: String(item.type || 'UNKNOWN'), componentIds: [], primitiveIds, attributes: attrs });
       if (Array.isArray(item.children) && item.children.length) walk(item.children, id, path);
@@ -71,7 +71,7 @@ function flattenAttTree(items, rootId) {
 
 // ---- per-component recipe dispatch -------------------------------------------------------------
 
-function buildComponentPrimitives(rawType, rawAttrs, nodeId, nextPrimId) {
+function buildComponentPrimitives(rawType, rawAttrs, nodeId, nextPrimId, sourceAttrs) {
   const type = String(rawType || 'UNKNOWN').toUpperCase();
   const start = pointFromAttr(rawAttrs.APOS) || pointFromAttr(rawAttrs.POS);
   const end = pointFromAttr(rawAttrs.LPOS);
@@ -81,7 +81,7 @@ function buildComponentPrimitives(rawType, rawAttrs, nodeId, nextPrimId) {
   const radius = arriveRadius;
   const spanLen = start && end ? distance(start, end) : 0;
   const hasSpan = spanLen > MIN_SEGMENT_LENGTH_MM;
-  const emit = (builder) => builder(nextPrimId, nodeId);
+  const emit = (builder) => attachSourceAttributes(builder(nextPrimId, nodeId), sourceAttrs);
   const out = [];
 
   switch (type) {
@@ -132,6 +132,12 @@ function buildComponentPrimitives(rawType, rawAttrs, nodeId, nextPrimId) {
     if (point) out.push(emit((next, n) => spherePrimitive(next(), n, point, Math.max(radius * 0.5, 15))));
   }
   return out;
+}
+
+function attachSourceAttributes(primitive, sourceAttrs) {
+  const attrs = sourceAttrs && typeof sourceAttrs === 'object' && !Array.isArray(sourceAttrs) ? { ...sourceAttrs } : {};
+  if (!Object.keys(attrs).length) return primitive;
+  return { ...primitive, attributes: { ...attrs }, sourceAttributes: { ...attrs } };
 }
 
 // ---- recipe builders ---------------------------------------------------------------------------

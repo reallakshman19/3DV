@@ -125,8 +125,10 @@ export function createJsonViewerShell(root) {
   const tagImportButton = iconButton('open', 'Import', 'tag-import', 'Import tag XML');
   const tagExportButton = iconButton('export', 'Export', 'tag-export', 'Export tag XML');
   const enrichButton = iconButton('enrich', 'E Work', 'enrich-open', 'Open selected geometry enrichment workflow');
+  const populateAttributesButton = iconButton('enrich', 'Attr+', 'enrich-populate', 'Populate attributes: run XML->CII(2019) enrichment on loaded geometry');
   const exportModelButton = iconButton('export', 'Model', 'export-stage', 'Export StageModel JSON');
-  const exportSelectionButton = iconButton('export', 'Sel JSON', 'export-selection', 'Export selected geometry JSON');
+  const exportSelectionElementButton = iconButton('export', 'Sel-E', 'export-selection-element', 'Export selected element SelJson');
+  const exportSelectionNodeButton = iconButton('export', 'Sel-N', 'export-selection-node', 'Export selected node SelJson');
   const exportConverterJsonButton = iconButton('converter', 'Conv JSON', 'export-converter-json', 'Export converter-ready RVM+ATT JSON');
   const exportSnapshotButton = iconButton('snapshot', 'Image', 'export-snapshot', 'Export viewport snapshot');
   const marqueeZoomButton = iconButton('fit', 'Marquee', 'tool-marquee', 'Marquee zoom');
@@ -157,8 +159,8 @@ export function createJsonViewerShell(root) {
     commandGroup('Clip', [clipSelectionButton, clipModelButton, clipPlaneButton, clipClearButton]),
     commandGroup('Explode', [explodeAxisGroup, explodeSlider, explodeResetBtn]),
     commandGroup('Tags', [tagCreateButton, tagViewButton, tagHideAllButton, tagShowAllButton, tagImportButton, tagExportButton]),
-    commandGroup('Enrich', [enrichButton]),
-    commandGroup('Exports', [exportModelButton, exportSelectionButton, exportConverterJsonButton, exportSnapshotButton]),
+    commandGroup('Enrich', [enrichButton, populateAttributesButton]),
+    commandGroup('Exports', [exportModelButton, exportSelectionElementButton, exportSelectionNodeButton, exportConverterJsonButton, exportSnapshotButton]),
     measureReadout,
   );
 
@@ -262,7 +264,7 @@ export function createJsonViewerShell(root) {
   summaryPanel.append(schemaText, sourceText, nodeText, componentText, primitiveText, decodedText, unsupportedText, failedText, diagnosticsText, qualityText, planEntryText, planDiagnosticText);
   shell.append(toolbar, navRow, body, enrichmentPanel, evidenceDetails, status); root.replaceChildren(shell);
 
-  return { shell, toolbar, navRow, body, leftPanel, rightPanel, fileInput, rvmFileInput, tagFileInput, downloadButton, qualitySelect, colorBySelect, diagnosticsButton, hierarchyList, treeFilterInput, hiddenList, summaryPanel, coveragePanel, canvasHost, canvasMessage, axisHud, axisCanvas, updateAxisHud: makeAxisHudUpdater(axisCanvas), bottomDrawer, bottomDrawerContent, enrichmentPanel, propertiesTab, engDataTab, tagsTab, clipTab, diagnosticsTab, propertiesPanel, engDataPanel, tagsPanel, clipPanel, diagnosticsPanel, progressBar, statusText, schemaText, sourceText, nodeText, primitiveText, decodedText, unsupportedText, failedText, componentText, diagnosticsText, qualityText, planEntryText, planDiagnosticText, selectToolButton, boxSelectButton, orbitToolButton, panToolButton, undoButton, redoButton, viewPrevButton, viewNextButton, explodeAxisGroup, explodeSlider, explodeResetBtn, fitButton, fitSelectionButton, isoViewButton, topViewButton, frontViewButton, sideViewButton, orthoToggleButton, searchOpenButton, searchReindexButton, hideButton, unhideButton, showAllButton, isolateButton, clipSelectionButton, clipModelButton, clipPlaneButton, clipClearButton, tagCreateButton, tagViewButton, tagHideAllButton, tagShowAllButton, tagImportButton, tagExportButton, enrichButton, exportModelButton, exportSelectionButton, exportConverterJsonButton, exportSnapshotButton, marqueeZoomButton, measureToolButton, measureReadout, selectedText, objectsText, visibleText, hiddenText, clipText, tagText, coordText, unitsText, qualityOverrideSelect, applyQualityButton };
+  return { shell, toolbar, navRow, body, leftPanel, rightPanel, fileInput, rvmFileInput, tagFileInput, downloadButton, qualitySelect, colorBySelect, diagnosticsButton, hierarchyList, treeFilterInput, hiddenList, summaryPanel, coveragePanel, canvasHost, canvasMessage, axisHud, axisCanvas, updateAxisHud: makeAxisHudUpdater(axisCanvas), bottomDrawer, bottomDrawerContent, enrichmentPanel, propertiesTab, engDataTab, tagsTab, clipTab, diagnosticsTab, propertiesPanel, engDataPanel, tagsPanel, clipPanel, diagnosticsPanel, progressBar, statusText, schemaText, sourceText, nodeText, primitiveText, decodedText, unsupportedText, failedText, componentText, diagnosticsText, qualityText, planEntryText, planDiagnosticText, selectToolButton, boxSelectButton, orbitToolButton, panToolButton, undoButton, redoButton, viewPrevButton, viewNextButton, explodeAxisGroup, explodeSlider, explodeResetBtn, fitButton, fitSelectionButton, isoViewButton, topViewButton, frontViewButton, sideViewButton, orthoToggleButton, searchOpenButton, searchReindexButton, hideButton, unhideButton, showAllButton, isolateButton, clipSelectionButton, clipModelButton, clipPlaneButton, clipClearButton, tagCreateButton, tagViewButton, tagHideAllButton, tagShowAllButton, tagImportButton, tagExportButton, enrichButton, exportModelButton, exportSelectionElementButton, exportSelectionNodeButton, exportConverterJsonButton, exportSnapshotButton, marqueeZoomButton, measureToolButton, measureReadout, selectedText, objectsText, visibleText, hiddenText, clipText, tagText, coordText, unitsText, qualityOverrideSelect, applyQualityButton };
 }
 
 const VIEW_CUBE_DEFS = [

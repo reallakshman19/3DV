@@ -50,6 +50,7 @@ function groupsFor(item, selectedRef) {
   if (selectedRef?.type === 'primitive') return [
     { title: 'Identity', rows: [['id', item.id], ['kind', item.kind], ['componentId', item.componentId], ['nodeId', item.nodeId]] },
     { title: 'Geometry', rows: [['bboxWorld', bboxText(item.transform?.bboxWorld)], ['nativeCode', item.source?.nativeCode], ['quality', item.quality]] },
+    { title: 'Attributes', rows: attributeRows(item) },
     { title: 'Source', rows: objectRows(item.source) },
   ];
   return [{ title: 'Properties', rows: Object.entries(item || {}) }];
@@ -99,6 +100,10 @@ function renderRow(key, value) {
 function objectRows(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
   return Object.entries(value);
+}
+
+function attributeRows(item) {
+  return objectRows({ ...(item?.attributes || {}), ...(item?.sourceAttributes || {}) });
 }
 
 function objectSummary(value) {

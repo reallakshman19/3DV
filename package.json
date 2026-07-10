@@ -7,7 +7,7 @@
     "test": "node tests/standalone-static.test.js",
     "test:static": "node tests/standalone-static.test.js",
     "test:evidence-ui": "node --experimental-default-type=module --test tests/viewer3d-json-rvm-evidence-ui-summary.test.js",
-    "serve": "python -m http.server 8080"
+    "serve": "python -m http.server 8081"
   },
   "engines": {
     "node": ">=20"

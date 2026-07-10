@@ -1248,19 +1248,31 @@ function buildElbowAssembly(startVec, endVec, centerVec, radius, color) {
   return group;
 }
 
+function radiusFromBoreAttr(attrs, key) {
+  const value = asNumber(attrs?.[key]);
+  return Number.isFinite(value) && value > 0 ? Math.max(value * 0.5, 1) : null;
+}
+
+function reducerEndRadii(element, fallbackRadius) {
+  const attrs = getAttrs(element);
+  const startRadius = radiusFromBoreAttr(attrs, 'ABORE')
+    || radiusFromBoreAttr(attrs, 'HBOR')
+    || Math.max(fallbackRadius, 1);
+  const endRadius = radiusFromBoreAttr(attrs, 'LBORE')
+    || radiusFromBoreAttr(attrs, 'TBOR');
+  if (endRadius) return { startRadius, endRadius };
+
+  const specRatio = parseOutletRatioFromSpec(element);
+  if (specRatio) return { startRadius, endRadius: Math.max(startRadius * specRatio.ratio, 1) };
+  return { startRadius, endRadius: Math.max(startRadius * 0.65, 1) };
+}
+
 function buildReducerAssembly(startVec, endVec, radius, color, element) {
   const diff = new THREE.Vector3().subVectors(endVec, startVec);
   const length = diff.length();
   if (!Number.isFinite(length) || length < 0.001) return null;
 
-  // Derive outlet radius from SPRE spec (e.g. "BR-250x100") or use 0.65 ratio fallback
-  const specRatio = parseOutletRatioFromSpec(element);
-  const outletRadius = specRatio
-    ? Math.max(radius * specRatio.ratio, 1)
-    : Math.max(radius * 0.65, 1);
-  
-  const rStart = radius;
-  const rEnd = outletRadius;
+  const { startRadius: rStart, endRadius: rEnd } = reducerEndRadii(element, radius);
 
   const dir = diff.clone().normalize();
   const mid = new THREE.Vector3().addVectors(startVec, endVec).multiplyScalar(0.5);

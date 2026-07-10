@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-const MIN_RADIUS = 0.05;
+const MIN_RADIUS = 0.001;
 const MAX_RADIUS = 1000000;
 const MIN_PITCH = -Math.PI / 2 + 0.05;
 const MAX_PITCH = Math.PI / 2 - 0.05;
@@ -33,18 +33,20 @@ export function detachStagePreviewCameraControls(rendererState) {
   rendererState.cameraControls = null;
 }
 
-export function fitStagePreviewCamera(rendererState, bbox) {
+export function fitStagePreviewCamera(rendererState, bbox, options = {}) {
   const controls = rendererState?.cameraControls || attachStagePreviewCameraControls(rendererState);
   if (!controls) return;
   const sphere = bboxSphere(bbox);
+  const yaw = controls.yaw;
+  const pitch = controls.pitch;
   controls.target.copy(sphere.target);
   // Use FOV-aware distance: r / sin(fov/2) gives correct framing for any camera FOV
   const fovRad = ((rendererState.camera?.fov || controls.rendererState?.camera?.fov || 45) * Math.PI) / 180;
   controls.radius = clamp(sphere.radius / Math.sin(fovRad / 2), MIN_RADIUS, MAX_RADIUS);
   controls.defaultTarget.copy(controls.target);
   controls.defaultRadius = controls.radius;
-  controls.yaw = Math.PI / 4;
-  controls.pitch = Math.PI / 6;
+  controls.yaw = options.preserveOrientation === true ? yaw : Math.PI / 4;
+  controls.pitch = options.preserveOrientation === true ? pitch : Math.PI / 6;
   controls.initialized = true;
   updateCamera(controls);
 }
@@ -117,6 +119,7 @@ function createControls(rendererState) {
 
 function pointerDown(event, controls) {
   if (event.button !== 0 && event.pointerType !== 'touch') return;
+  if (controls.mode === 'select') return;
   event.preventDefault();
   controls.active = true;
   controls.lastX = event.clientX;
@@ -210,9 +213,15 @@ function pointerUp(event, controls) {
 
 function wheel(event, controls) {
   event.preventDefault();
+  const before = pointerTargetPlanePoint(event, controls);
   const factor = Math.exp(Math.sign(event.deltaY) * 0.12);
   controls.radius = clamp(controls.radius * factor, MIN_RADIUS, MAX_RADIUS);
   updateCamera(controls);
+  const after = pointerTargetPlanePoint(event, controls);
+  if (before && after) {
+    controls.target.add(before.sub(after));
+    updateCamera(controls);
+  }
   clearTimeout(controls.wheelTimer);
   controls.wheelTimer = setTimeout(() => pushCameraViewSnapshot(controls), 600);
 }
@@ -226,8 +235,9 @@ function updateCamera(controls) {
   
   // Tighter near/far ratio (20,000:1 vs old 1,000,000:1) reduces Z-fighting significantly.
   // Combined with logarithmicDepthBuffer in the renderer this is very effective.
-  const near = Math.max(controls.radius / 200, 0.05);
-  const far  = Math.max(controls.radius * 100, 5000);
+  const sceneRadius = rendererSceneRadius(state, controls.radius);
+  const near = Math.max(Math.min(controls.radius / 1000, sceneRadius / 10000), 0.001);
+  const far = Math.max(controls.radius + sceneRadius * 6, controls.radius * 20, 5000);
 
   if (state.perspCamera) {
     state.perspCamera.position.copy(controls.target).add(new THREE.Vector3(x, y, z));
@@ -266,7 +276,26 @@ function bboxSphere(bbox) {
   if (!Array.isArray(bbox) || bbox.length !== 6) return { target: new THREE.Vector3(), radius: 4 };
   const target = new THREE.Vector3((bbox[0] + bbox[3]) / 2, (bbox[1] + bbox[4]) / 2, (bbox[2] + bbox[5]) / 2);
   const size = new THREE.Vector3(bbox[3] - bbox[0], bbox[4] - bbox[1], bbox[5] - bbox[2]);
-  return { target, radius: Math.max(size.length() / 2, 1) };
+  return { target, radius: Math.max(size.length() / 2, 0.01) };
+}
+
+function rendererSceneRadius(state, fallback) {
+  return bboxSphere(state?.currentBbox).radius || fallback || 4;
+}
+
+function pointerTargetPlanePoint(event, controls) {
+  const { camera, renderer } = controls.rendererState;
+  const bounds = renderer.domElement.getBoundingClientRect();
+  const pointer = new THREE.Vector2(
+    ((event.clientX - bounds.left) / Math.max(bounds.width, 1)) * 2 - 1,
+    -(((event.clientY - bounds.top) / Math.max(bounds.height, 1)) * 2 - 1),
+  );
+  const raycaster = new THREE.Raycaster();
+  const normal = new THREE.Vector3();
+  camera.getWorldDirection(normal);
+  const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, controls.target);
+  raycaster.setFromCamera(pointer, camera);
+  return raycaster.ray.intersectPlane(plane, new THREE.Vector3());
 }
 
 function clamp(value, min, max) {
