@@ -38,13 +38,16 @@ function row(type, id, label, depth, selectedRef, meta, title, viewState, enrich
     const dot = document.createElement('span');
     dot.className = 'json-viewer-tree-enrich-dot';
     const conf = enrichedAttributes.enrichmentConfidence;
-    if (enrichedAttributes.conflicts && enrichedAttributes.conflicts.length > 0) {
+    const status = String(enrichedAttributes.status || conf || '').toLowerCase();
+    const diagnostics = Array.isArray(enrichedAttributes.diagnostics) ? enrichedAttributes.diagnostics : [];
+    const blocked = diagnostics.some((item) => String(item?.severity || '').toUpperCase() === 'BLOCKED');
+    if (blocked || (enrichedAttributes.conflicts && enrichedAttributes.conflicts.length > 0)) {
       dot.classList.add('is-conflict');
-      dot.title = 'Enrichment conflict';
-    } else if (conf === 'missing' || !enrichedAttributes.lineNo) {
+      dot.title = blocked ? `${diagnostics.length} engineering issue(s); select to inspect` : 'Enrichment conflict';
+    } else if (status === 'missing' || (!enrichedAttributes.lineNo && !isSupportEnrichment(enrichedAttributes))) {
       dot.classList.add('is-missing');
       dot.title = 'No enrichment match';
-    } else if (enrichedAttributes.needsReview) {
+    } else if (['partial', 'review'].includes(status) || enrichedAttributes.needsReview) {
       dot.classList.add('is-partial');
       dot.title = 'Partial enrichment match';
     } else {
@@ -59,6 +62,10 @@ function row(type, id, label, depth, selectedRef, meta, title, viewState, enrich
   actions.append(actionButton(hidden ? 'Show' : 'Hide', type, id, 'visibility'), actionButton('Tag', type, id, 'tag'));
   item.append(checkbox, node, actions);
   return item;
+}
+
+function isSupportEnrichment(enrichedAttributes) {
+  return String(enrichedAttributes?.componentType || '').toUpperCase() === 'SUPPORT';
 }
 
 function actionButton(text, type, id, action) {

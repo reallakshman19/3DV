@@ -16,6 +16,7 @@ import { renderHierarchyTree } from '../stage/ui/JsonViewerHierarchyTree.js';
 import { STAGE_WORKER_FAILURE_ID, STAGE_WORKER_PREFLIGHT_ID, createRvmUiDiagnostics } from '../stage/ui/JsonViewerDiagnostics.js';
 import { renderProperties } from '../stage/ui/JsonViewerPropertiesPanel.js';
 import { renderEngDataPanel } from '../stage/ui/JsonViewerEngDataPanel.js';
+import { renderJsonViewerDataHealth } from '../stage/ui/JsonViewerDataHealth.js';
 import { renderDiagnostics } from '../stage/ui/JsonViewerDiagnosticsPanel.js';
 import { renderClipPanel, renderHiddenList, renderTagsPanel } from '../stage/ui/JsonViewerToolsPanels.js';
 import { renderDrawerContent } from '../stage/ui/JsonViewerBottomDrawer.js';
@@ -25,6 +26,7 @@ import { createJsonViewerEnrichmentState, renderJsonViewerEnrichmentPanel } from
 import { classifyRvmWorkerResult } from '../stage/ui/RvmUiHandoff.js';
 import { buildStageModelDownload, deriveRvmStageUiSummary } from '../stage/ui/RvmStageModelUiSummary.js';
 import { buildRvmConverterJsonPayload } from '../stage/export/RvmConverterJsonExport.js';
+import { buildJsonViewerSelectionPayload } from '../stage/export/JsonViewerSelectionExport.js';
 import { openConverterJsonDialog } from '../stage/ui/JsonViewerConverterJsonDialog.js';
 
 const SAMPLE_SOURCE_NAME = 'sample-rvm-stage-model-v1.js';
@@ -166,7 +168,7 @@ function syncPreviewTools(preview, state) {
 function renderEvidencePanels(handles, state) {
   const summary = deriveRvmStageUiSummary(state.model, state.workerDiagnostics);
   renderSummary(handles.summaryPanel, summary, state.model);
-  renderCoverage(handles.coveragePanel, summary.coverage);
+  renderCoverage(handles.coveragePanel, summary.coverage, state.model);
   handles.downloadButton.disabled = !state.model;
 }
 
@@ -178,12 +180,12 @@ function renderSummary(target, summary, model) {
   target.append(title, grid);
 }
 
-function renderCoverage(target, rows) {
+function renderCoverage(target, rows, model) {
   target.replaceChildren(); const title = document.createElement('h2'); title.className = 'json-viewer-panel-title'; title.textContent = 'Primitive Code Coverage';
   const table = document.createElement('table'); table.className = 'json-viewer-coverage-table'; const body = document.createElement('tbody');
   const header = document.createElement('tr'); for (const text of ['Code', 'Kind', 'Status', 'Count']) { const th = document.createElement('th'); th.textContent = text; header.appendChild(th); } table.appendChild(header);
   for (const row of rows) { const tr = document.createElement('tr'); for (const value of [row.code, row.kind, row.status, row.count]) { const td = document.createElement('td'); td.textContent = String(value); tr.appendChild(td); } body.appendChild(tr); }
-  table.appendChild(body); target.append(title, table);
+  table.appendChild(body); target.append(title, table); renderJsonViewerDataHealth(target, model);
 }
 
 function addPair(grid, key, value) { const dt = document.createElement('dt'); const dd = document.createElement('dd'); dt.textContent = key; dd.textContent = String(value); grid.append(dt, dd); }
@@ -313,7 +315,7 @@ async function hashStageJsonText(file, text) { return hashBytes(file, new TextEn
 async function hashArrayBuffer(file, arrayBuffer, kind) { return hashBytes(file, new Uint8Array(arrayBuffer), kind); }
 async function hashBytes(file, bytes, kind) { const cryptoApi = globalThis.crypto?.subtle; if (!cryptoApi) return `sha256-${kind}-${file.name}-${file.size}-${bytes.byteLength}`; const digest = await cryptoApi.digest('SHA-256', bytes); return `sha256-${Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('')}`; }
 function downloadStageModel(handles, state) { if (!state.model) return; const download = buildStageModelDownload(state.model, state.sourceFileName); const url = URL.createObjectURL(new Blob([download.text], { type: 'application/json' })); const a = document.createElement('a'); a.href = url; a.download = download.fileName; a.click(); URL.revokeObjectURL(url); state.statusText = `Downloaded ${download.fileName}`; updateStatus(handles, state); }
-function downloadSelectionJson(handles, state, mode = 'element') { const refs = selectionRefs(state); const rows = mode === 'node' ? nodeSelectionRows(state.model, refs) : refs.map((ref) => ({ ref, item: itemForRef(state.model, ref) })); downloadBlob(`json-viewer-selection-${mode}.json`, JSON.stringify({ source: state.sourceFileName, mode, selected: rows }, null, 2), 'application/json'); state.statusText = `Exported ${rows.length} ${mode} selection item(s)`; updateStatus(handles, state); }
+function downloadSelectionJson(handles, state, mode = 'element') { const refs = selectionRefs(state); const payload = buildJsonViewerSelectionPayload(state.model, state.sourceFileName, refs, mode); downloadBlob(`json-viewer-selection-${mode}.json`, JSON.stringify(payload, null, 2), 'application/json'); state.statusText = `Exported ${payload.selected.length} ${mode} selection item(s)`; updateStatus(handles, state); }
 // Converter export seed: accepts viewer handles/state, downloads a schema-stamped JSON payload, and reports a status-only fallback when no model is loaded.
 function downloadConverterJson(handles, state) {
   if (!state.model) { state.statusText = 'Converter JSON unavailable: load a model first'; updateStatus(handles, state); return; }
@@ -330,11 +332,6 @@ function downloadConverterJson(handles, state) {
 function downloadSnapshot(handles, state) { const dataUrl = state.previewRenderer?.renderer?.domElement?.toDataURL?.('image/png'); if (!dataUrl) { state.statusText = 'Snapshot unavailable'; return updateStatus(handles, state); } const a = document.createElement('a'); a.href = dataUrl; a.download = 'json-viewer-snapshot.png'; a.click(); state.statusText = 'Exported viewport snapshot'; updateStatus(handles, state); }
 function downloadBlob(name, text, type) { const url = URL.createObjectURL(new Blob([text], { type })); const a = document.createElement('a'); a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url); }
 function selectionRefs(state) { return state.selectedRefs?.length ? state.selectedRefs : state.selectedRef ? [state.selectedRef] : []; }
-function itemForRef(model, ref) { if (!model || !ref) return null; if (ref.type === 'root') return { id: ref.id, schema: model.schema, source: model.source }; if (ref.type === 'node') return nodeForRef(model, ref); if (ref.type === 'component') return model.components?.find((item) => item.id === ref.id) || null; if (ref.type === 'primitive') return primitiveForRef(model, ref); return null; }
-function nodeForRef(model, ref) { const node = model.hierarchy?.nodes?.find((item) => item.id === ref.id); return node ? { ...node, source: { ...(node.source || {}), parentPath: node.path || '', nodeName: node.name || '', nodeKind: node.kind || '' } } : null; }
-function primitiveForRef(model, ref) { const primitive = model.primitives?.find((item) => item.id === ref.id); if (!primitive) return null; const node = model.hierarchy?.nodes?.find((item) => item.id === primitive.nodeId); if (!node) return primitive; const source = { ...(primitive.source || {}), parentPath: node.path || '', nodeName: node.name || '', nodeKind: node.kind || '' }; const attrs = { ...(node.attributes || {}), ...(primitive.attributes || {}) }; const enrichedAttributes = primitive.enrichedAttributes || node.enrichedAttributes; return { ...primitive, source, semantic: { ...(primitive.semantic || {}), parentPath: node.path || '' }, attributes: attrs, sourceAttributes: { ...(node.attributes || {}), ...(primitive.sourceAttributes || {}) }, ...(enrichedAttributes ? { enrichedAttributes } : {}) }; }
-function nodeSelectionRows(model, refs) { const rows = new Map(); for (const ref of refs) { const nodeRef = nodeRefForSelection(model, ref); if (!nodeRef || rows.has(nodeRef.id)) continue; const node = nodeForRef(model, nodeRef); const primitives = (node?.primitiveIds || []).map((id) => primitiveForRef(model, { type: 'primitive', id })).filter(Boolean); rows.set(nodeRef.id, { ref: nodeRef, item: node ? { ...node, primitives } : null }); } return Array.from(rows.values()); }
-function nodeRefForSelection(model, ref) { if (ref?.type === 'node') return { type: 'node', id: ref.id }; if (ref?.type === 'primitive') { const primitive = model?.primitives?.find((item) => item.id === ref.id); return primitive?.nodeId ? { type: 'node', id: primitive.nodeId } : null; } return null; }
 
 const TOOL_ACTIONS = { 'tool-select': 'select', 'tool-orbit': 'orbit', 'tool-pan': 'pan' };
 function setActiveTool(action, handles, state) {

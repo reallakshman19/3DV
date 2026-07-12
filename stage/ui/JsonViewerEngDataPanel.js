@@ -40,6 +40,8 @@ export function renderEngDataPanel(target, model, selectedRef) {
       ['Fluid Service', enriched.fluidService],
       ['Fluid Phase', enriched.fluidPhase],
       ['Fluid Density', enriched.fluidDensityKgM3 != null ? `${enriched.fluidDensityKgM3} kg/m³` : null],
+      ['Fluid Density OPE', enriched.fluidDensityOpeKgM3 != null ? `${enriched.fluidDensityOpeKgM3} kg/m³` : null],
+      ['Fluid Density HYD', enriched.fluidDensityHydKgM3 != null ? `${enriched.fluidDensityHydKgM3} kg/m³` : null],
       ['Design Pressure', enriched.designPressureMpa != null ? `${enriched.designPressureMpa}` : null],
       ['Design Temp (T1)', enriched.designTemperatureC != null ? `${enriched.designTemperatureC} °C` : null],
       ['Operating Temp', enriched.operatingTemperatureC != null ? `${enriched.operatingTemperatureC} °C` : null],
@@ -68,8 +70,21 @@ export function renderEngDataPanel(target, model, selectedRef) {
     const weightRows = [
       ['Component Weight', enriched.componentWeightKg != null ? `${enriched.componentWeightKg} kg` : null],
       ['Pipe Weight (per m)', enriched.pipeWeightKgPerM != null ? `${enriched.pipeWeightKgPerM} kg/m` : null],
+      ['Fluid Weight OPE (per m)', enriched.fluidWeightOpeKgPerM != null ? `${enriched.fluidWeightOpeKgPerM} kg/m` : null],
+      ['Fluid Weight HYD (per m)', enriched.fluidWeightHydKgPerM != null ? `${enriched.fluidWeightHydKgPerM} kg/m` : null],
+      ['Insulation Weight (per m)', enriched.insulationWeightKgPerM != null ? `${enriched.insulationWeightKgPerM} kg/m` : null],
     ].filter(r => r[1] != null && r[1] !== '');
     if (weightRows.length > 0) target.appendChild(renderGroup('Weight', weightRows));
+
+    const auditRows = [
+      ['Status', enriched.status || enriched.enrichmentConfidence],
+      ['Needs Review', enriched.needsReview === true ? 'YES' : 'NO'],
+      ['Missing', Array.isArray(enriched.missing) ? enriched.missing.join(', ') : null],
+      ['Conflicts', Array.isArray(enriched.conflicts) ? enriched.conflicts.join(', ') : null],
+    ].filter((row) => row[1] != null && row[1] !== '');
+    if (auditRows.length) target.appendChild(renderGroup('Data Health', auditRows));
+    const diagnosticRows = diagnosticsFor(item, enriched).map((diagnostic) => [diagnostic.ui?.badge || diagnostic.field || diagnostic.category, `${diagnostic.severity || 'INFO'}: ${diagnostic.message || ''}`]);
+    if (diagnosticRows.length) target.appendChild(renderGroup(`Issues (${diagnosticRows.length})`, diagnosticRows));
     
     if (processRows.length === 0 && specRows.length === 0 && matRows.length === 0 && weightRows.length === 0) {
        renderEmpty(target, 'No enriched attributes available.');
@@ -87,6 +102,11 @@ export function renderEngDataPanel(target, model, selectedRef) {
       renderEmpty(target, 'No engineering attributes found. Try running Enrichment.');
     }
   }
+}
+
+function diagnosticsFor(item, enriched) {
+  const rows = [...(Array.isArray(item?.diagnostics) ? item.diagnostics : []), ...(Array.isArray(enriched?.diagnostics) ? enriched.diagnostics : [])];
+  return [...new Map(rows.map((row) => [row?.id || JSON.stringify(row), row])).values()];
 }
 
 function renderGroup(title, rows) {

@@ -125,7 +125,7 @@ export function createJsonViewerShell(root) {
   const tagImportButton = iconButton('open', 'Import', 'tag-import', 'Import tag XML');
   const tagExportButton = iconButton('export', 'Export', 'tag-export', 'Export tag XML');
   const enrichButton = iconButton('enrich', 'E Work', 'enrich-open', 'Open selected geometry enrichment workflow');
-  const populateAttributesButton = iconButton('enrich', 'Attr+', 'enrich-populate', 'Populate attributes: run XML->CII(2019) enrichment on loaded geometry');
+  const populateAttributesButton = iconButton('enrich', 'Attr+ Draft', 'enrich-populate', 'DRAFT: experimental viewer-side attribute population. Production enrichment runs in XML->CII(2019) Standalone > stagedJson enrichment. This draft tool remains available for development.');
   const exportModelButton = iconButton('export', 'Model', 'export-stage', 'Export StageModel JSON');
   const exportSelectionElementButton = iconButton('export', 'Sel-E', 'export-selection-element', 'Export selected element SelJson');
   const exportSelectionNodeButton = iconButton('export', 'Sel-N', 'export-selection-node', 'Export selected node SelJson');

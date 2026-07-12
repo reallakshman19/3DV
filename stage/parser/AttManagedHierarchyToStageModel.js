@@ -61,7 +61,16 @@ function flattenAttTree(items, rootId) {
       const primitiveIds = [];
       const nodePrimitives = buildComponentPrimitives(item.type, item.attributes || {}, id, nextPrimId, attrs);
       for (const primitive of nodePrimitives) { primitives.push(primitive); primitiveIds.push(primitive.id); }
-      nodes.push({ id, parentId, name, path, kind: String(item.type || 'UNKNOWN'), componentIds: [], primitiveIds, attributes: attrs });
+      nodes.push({
+        id, parentId, name, path,
+        kind: String(item.type || 'UNKNOWN'),
+        componentIds: [],
+        primitiveIds,
+        attributes: attrs,
+        ...(plainObject(item.enrichedAttributes) ? { enrichedAttributes: clonePlain(item.enrichedAttributes) } : {}),
+        diagnostics: diagnosticRows(item),
+        sourceId: String(item.id || ''),
+      });
       if (Array.isArray(item.children) && item.children.length) walk(item.children, id, path);
     }
   };
@@ -388,4 +397,20 @@ function plainAttributes(item) {
     }
   }
   return out;
+}
+
+function diagnosticRows(item) {
+  const rows = [
+    ...(Array.isArray(item?.diagnostics) ? item.diagnostics : []),
+    ...(Array.isArray(item?.enrichedAttributes?.diagnostics) ? item.enrichedAttributes.diagnostics : []),
+  ];
+  return [...new Map(rows.map((row) => [row?.id || JSON.stringify(row), clonePlain(row)])).values()];
+}
+
+function plainObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function clonePlain(value) {
+  return JSON.parse(JSON.stringify(value));
 }
